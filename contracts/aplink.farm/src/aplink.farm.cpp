@@ -145,7 +145,6 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
     for (auto& allot_id : allot_ids) {
         auto allot = allot_t(allot_id);
         CHECKC( _db.get( allot ), err::RECORD_NOT_FOUND, "allot not found: " + to_string(allot_id) )
-        CHECKC( farmer == allot.farmer || farmer == _gstate.jamfactory, err::ACCOUNT_INVALID, "farmer account not authorized" )
         
         if (farmer == allot.farmer || farmer == _gstate.jamfactory) {
             CHECKC(farmer == allot.farmer || farmer == _gstate.jamfactory, err::ACCOUNT_INVALID,
