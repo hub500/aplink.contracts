@@ -59,6 +59,13 @@ public:
     ACTION init(const name& landlord, const name& jamfactory, const uint64_t& last_lease_id, const uint64_t& last_allot_id);
 
     /**
+    * @param rate - friend pick rate < 100
+    * @param start_time - frient pick start time > alloted_at + friend_start_time
+    * @param end_time - frient pick end time < alloted_at + friend_end_time
+    */
+    ACTION setinit(const uint64_t& rate, const uint64_t& start_time, const uint64_t& end_time);
+
+    /**
      * @brief lease a land to a farmer
      * 
      * @param tenant a contract account who applies for a land and certain amount of apples for his or her farmers to pick

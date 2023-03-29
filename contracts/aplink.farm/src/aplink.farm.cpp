@@ -5,6 +5,7 @@
 #include <eosio/permission.hpp>
 
 static constexpr uint32_t max_text_size     = 64;
+static constexpr uint32_t max_desc_size     = 500;
 using namespace aplink;
 using namespace wasm;
 
@@ -27,6 +28,18 @@ void farm::init(const name& lord, const name& jamfactory, const uint64_t& last_l
     _gstate.jamfactory      = jamfactory;
     _gstate.last_lease_id   = last_lease_id;
     _gstate.last_allot_id   = last_allot_id;
+}
+
+void farm::setinit(const uint64_t& rate, const uint64_t& start_time, const uint64_t& end_time) {
+    require_auth( get_self() );
+
+    CHECKC( rate > 0 && rate < 100, err::PARAM_ERROR, "friend rate too small" );
+    CHECKC( start_time > 0, err::PARAM_ERROR, "friend pick start time too small" );
+    CHECKC( end_time > start_time, err::PARAM_ERROR, "friend pick end time too small" );
+
+    _gstate.friend_rate        = rate;
+    _gstate.friend_start_time  = start_time;
+    _gstate.friend_end_time    = end_time;
 }
 
 void farm::lease(   const name& tenant, 
@@ -57,6 +70,9 @@ void farm::lease(   const name& tenant,
 
 void farm::setlease( const uint64_t& lease_id, const string& land_uri, const string& banner_uri, const string& desc_cn, const string& desc_en ) {
     require_auth( _gstate.landlord );
+
+    CHECKC( desc_cn.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc cn size too large, respect " + to_string(max_desc_size))
+    CHECKC( desc_en.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc en size too large, respect " + to_string(max_desc_size))
 
     auto lease                  = lease_t(lease_id);
     CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "land not found: " + to_string(lease_id) )
@@ -146,7 +162,7 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
             }
         } else {
             // frient pick
-            if (now > allot.alloted_at+86400 && now < allot.expired_at) {
+            if (now > allot.alloted_at+_gstate.friend_start_time && now < allot.alloted_at+_gstate.friend_end_time) {
                 is_frient += 1;
                 // parent allot_farmer
                 name parent_allot_farmer = get_account_creator(allot.farmer);
@@ -158,7 +174,7 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
                 "farmer account not authorized");
                 
                 // apples split
-                auto pick_split = allot.apples * 20 / 100;
+                auto pick_split = allot.apples * _gstate.friend_rate / 100;
                 pick_quantity += pick_split;
                 farmer_quantity += allot.apples - pick_split;
 
