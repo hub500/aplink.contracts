@@ -67,6 +67,8 @@ struct FARM_TBL lease_t {
     time_point_sec      closed_at;                  //customer stop crop at
     time_point_sec      created_at;                 //creation time (UTC time)
     time_point_sec      updated_at;                 //update time: last updated atuint8_t  
+    string desc_cn;
+    string desc_en;
     
     lease_t() {}
     lease_t(const uint64_t& pid): id(pid) {}
@@ -81,7 +83,7 @@ struct FARM_TBL lease_t {
     > idx_t;
 
     EOSLIB_SERIALIZE( lease_t,  (id)(tenant)(land_title)(land_uri)(banner_uri)(alloted_apples)(available_apples)
-                                (status)(opened_at)(closed_at)(created_at)(updated_at) )
+                                (status)(opened_at)(closed_at)(created_at)(updated_at)(desc_cn)(desc_en) )
 
 };
 

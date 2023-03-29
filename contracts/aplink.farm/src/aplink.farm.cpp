@@ -2,6 +2,7 @@
 #include <string>
 #include "utils.hpp"
 #include "aplink.token/aplink.token.hpp"
+#include <eosio/permission.hpp>
 
 static constexpr uint32_t max_text_size     = 64;
 using namespace aplink;
@@ -54,7 +55,7 @@ void farm::lease(   const name& tenant,
     _db.set(lease, _gstate.landlord);
 }
 
-void farm::setlease( const uint64_t& lease_id, const string& land_uri, const string& banner_uri ) {
+void farm::setlease( const uint64_t& lease_id, const string& land_uri, const string& banner_uri, const string& desc_cn, const string& desc_en ) {
     require_auth( _gstate.landlord );
 
     auto lease                  = lease_t(lease_id);
@@ -62,6 +63,8 @@ void farm::setlease( const uint64_t& lease_id, const string& land_uri, const str
 
     lease.land_uri              = land_uri;
     lease.banner_uri            = banner_uri;
+    lease.desc_cn               = desc_cn;
+    lease.desc_en               = desc_en;
 
     _db.set( lease );
 }
@@ -116,33 +119,63 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
 
     auto farmer_quantity        = asset(0, APLINK_SYMBOL);
     auto factory_quantity       = asset(0, APLINK_SYMBOL);
+    auto pick_quantity = asset(0, APLINK_SYMBOL); // friend pick
+    name allot_farmer;
     auto now                    = time_point_sec(current_time_point());
 
     CHECKC( allot_ids.size() <= 20, err::CONTENT_LENGTH_INVALID, "allot_ids too long, expect length 20" );
     
-    string memo = "";
+    uint64_t is_frient = 0;
     for (auto& allot_id : allot_ids) {
         auto allot = allot_t(allot_id);
         CHECKC( _db.get( allot ), err::RECORD_NOT_FOUND, "allot not found: " + to_string(allot_id) )
         CHECKC( farmer == allot.farmer || farmer == _gstate.jamfactory, err::ACCOUNT_INVALID, "farmer account not authorized" )
         
-        if (now > allot.expired_at) { //already expired
-            factory_quantity        += allot.apples;
-            _db.del( allot );
+        if (farmer == allot.farmer || farmer == _gstate.jamfactory) {
+            CHECKC(farmer == allot.farmer || farmer == _gstate.jamfactory, err::ACCOUNT_INVALID,
+                "farmer account not authorized");
 
+            if (now > allot.expired_at) { // already expired
+                factory_quantity += allot.apples;
+                _db.del(allot);
+            } else {
+                CHECKC(farmer != _gstate.jamfactory, err::NO_AUTH, "jamfactory pick not allowed")
+
+                farmer_quantity += allot.apples;
+                _db.del(allot);
+            }
         } else {
-            CHECKC( farmer !=  _gstate.jamfactory, err::NO_AUTH, "jamfactory pick not allowed" )
+            // frient pick
+            if (now > allot.alloted_at+86400 && now < allot.expired_at) {
+                is_frient += 1;
+                // parent allot_farmer
+                name parent_allot_farmer = get_account_creator(allot.farmer);
+                allot_farmer = allot.farmer;
+                // child user parent farmer
+                name parent_farmer = get_account_creator(farmer);
 
-            farmer_quantity         += allot.apples;
-            _db.del( allot );
+                CHECKC(farmer == parent_allot_farmer || parent_farmer == allot.farmer, err::ACCOUNT_INVALID,
+                "farmer account not authorized");
+                
+                // apples split
+                auto pick_split = allot.apples * 20 / 100;
+                pick_quantity += pick_split;
+                farmer_quantity += allot.apples - pick_split;
+
+                _db.del(allot);
+            } else {
+                CHECKC(false, err::ACCOUNT_INVALID, "pick account not allowed");
+            }
         }
-	}
+    }
 
-    if (farmer_quantity.amount > 0) 
-        TRANSFER( APLINK_BANK, farmer, farmer_quantity, "pick" )
-
-    if (factory_quantity.amount > 0) 
-        TRANSFER( APLINK_BANK, _gstate.jamfactory, factory_quantity, "jam");
+    if (is_frient == 0) {
+        if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, farmer_quantity, "pick")
+    } else {
+        if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, allot_farmer, farmer_quantity, "pick")
+        if (pick_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, factory_quantity, "pick friend");
+    }
+    if (factory_quantity.amount > 0) TRANSFER(APLINK_BANK, _gstate.jamfactory, factory_quantity, "jam");
 }
 
 void farm::ontransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
