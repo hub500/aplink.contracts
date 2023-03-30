@@ -169,6 +169,8 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
                 // child user parent farmer
                 name parent_farmer = get_account_creator(farmer);
 
+                print("parent_farmer=>", parent_farmer, "\t"); // todo
+                print("parent allot_farmer=>", parent_allot_farmer);
                 CHECKC(farmer == parent_allot_farmer || parent_farmer == allot.farmer, err::ACCOUNT_INVALID,
                 "farmer account not authorized");
                 
@@ -179,16 +181,23 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
 
                 _db.del(allot);
             } else {
+                name parent_allot_farmer = get_account_creator(allot.farmer);
+                name parent_farmer = get_account_creator(farmer);
+                print("parent_farmer=>", parent_farmer, "\t"); // todo
+                print("parent allot_farmer=>", parent_allot_farmer);
                 CHECKC(false, err::ACCOUNT_INVALID, "pick account not allowed");
             }
         }
     }
 
+    print("farmer_quantity=>", farmer_quantity, "\t"); // todo
+    print("pick_quantity=>", pick_quantity, "\t");
+    print("factory_quantity=>", factory_quantity);
     if (is_frient == 0) {
         if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, farmer_quantity, "pick")
     } else {
         if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, allot_farmer, farmer_quantity, "pick")
-        if (pick_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, factory_quantity, "pick friend");
+        if (pick_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, pick_quantity, "pick friend");
     }
     if (factory_quantity.amount > 0) TRANSFER(APLINK_BANK, _gstate.jamfactory, factory_quantity, "jam");
 }
