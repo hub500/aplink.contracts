@@ -39,18 +39,25 @@ private:
     global_singleton    _global;
     global_t            _gstate;
     dbc                 _db;
+    globalext_singleton _globalext;
+    globalext_t         _gextstate;
 
 public:
     using contract::contract;
 
     farm(eosio::name receiver, eosio::name code, datastream<const char*> ds):
         _db(_self), contract(receiver, code, ds),
-        _global(get_self(), get_self().value)
+        _global(get_self(), get_self().value),
+        _globalext(get_self(), get_self().value)
     {
         _gstate = _global.exists() ? _global.get() : global_t{};
+        _gextstate = _globalext.exists() ? _globalext.get() : globalext_t{};
     }
 
-    ~farm() { _global.set( _gstate, get_self() ); }
+    ~farm() { 
+        _global.set( _gstate, get_self() );
+        _globalext.set( _gextstate, get_self() );
+    }
     
     /**
     * @param landlord - who can lend out land
@@ -77,7 +84,10 @@ public:
     ACTION lease(const name& tenant, const string& lese_title, const string& land_uri, const string& banner_uri 
                 /*const time_point& opened_at, const time_point& closed_at*/);
 
-    ACTION setlease( const uint64_t& lease_id, const string& land_uri, const string& banner_uri, const string& desc_cn, const string& desc_en );
+    ACTION setlease( const uint64_t& lease_id, const string& land_uri, const string& banner_uri );
+
+    ACTION setleaselang( const uint64_t& lease_id, const string& desc_cn, const string& desc_en );
+
     ACTION settenant( const uint64_t& lease_id, const name& tenant );
     /**
      * @brief reclaim a lease, only for inactive ones

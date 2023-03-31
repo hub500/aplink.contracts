@@ -37,9 +37,9 @@ void farm::setinit(const uint64_t& rate, const uint64_t& start_time, const uint6
     CHECKC( start_time > 0, err::PARAM_ERROR, "friend pick start time too small" );
     CHECKC( end_time > start_time, err::PARAM_ERROR, "friend pick end time too small" );
 
-    _gstate.friend_rate        = rate;
-    _gstate.friend_start_time  = start_time;
-    _gstate.friend_end_time    = end_time;
+    _gextstate.friend_rate        = rate;
+    _gextstate.friend_start_time  = start_time;
+    _gextstate.friend_end_time    = end_time;
 }
 
 void farm::lease(   const name& tenant, 
@@ -68,7 +68,19 @@ void farm::lease(   const name& tenant,
     _db.set(lease, _gstate.landlord);
 }
 
-void farm::setlease( const uint64_t& lease_id, const string& land_uri, const string& banner_uri, const string& desc_cn, const string& desc_en ) {
+void farm::setlease( const uint64_t& lease_id, const string& land_uri, const string& banner_uri ) {
+    require_auth( _gstate.landlord );
+
+    auto lease                  = lease_t(lease_id);
+    CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "land not found: " + to_string(lease_id) )
+
+    lease.land_uri              = land_uri;
+    lease.banner_uri            = banner_uri;
+
+    _db.set( lease );
+}
+
+void farm::setleaselang( const uint64_t& lease_id, const string& desc_cn, const string& desc_en ) {
     require_auth( _gstate.landlord );
 
     CHECKC( desc_cn.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc cn size too large, respect " + to_string(max_desc_size))
@@ -77,12 +89,17 @@ void farm::setlease( const uint64_t& lease_id, const string& land_uri, const str
     auto lease                  = lease_t(lease_id);
     CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "land not found: " + to_string(lease_id) )
 
-    lease.land_uri              = land_uri;
-    lease.banner_uri            = banner_uri;
-    lease.desc_cn               = desc_cn;
-    lease.desc_en               = desc_en;
-
-    _db.set( lease );
+    auto leaselang              = leaselang_t(lease_id);
+    if ( !_db.get( leaselang )) {
+        leaselang               = leaselang_t(lease_id);
+        leaselang.desc_cn               = desc_cn;
+        leaselang.desc_en               = desc_en;
+        _db.set( leaselang, _gstate.landlord );
+    } else {
+        leaselang.desc_cn               = desc_cn;
+        leaselang.desc_en               = desc_en;
+        _db.set( leaselang );
+    }
 }
 
 void farm::settenant( const uint64_t& lease_id, const name& tenant ) {
@@ -161,7 +178,7 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
             }
         } else {
             // frient pick
-            if (now > allot.alloted_at+_gstate.friend_start_time && now < allot.alloted_at+_gstate.friend_end_time) {
+            if (now > allot.alloted_at+_gextstate.friend_start_time && now < allot.alloted_at+_gextstate.friend_end_time) {
                 is_frient += 1;
                 // parent allot_farmer
                 name parent_allot_farmer = get_account_creator(allot.farmer);
@@ -175,7 +192,7 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
                 "farmer account not authorized");
                 
                 // apples split
-                auto pick_split = allot.apples * _gstate.friend_rate / 100;
+                auto pick_split = allot.apples * _gextstate.friend_rate / 100;
                 pick_quantity += pick_split;
                 farmer_quantity += allot.apples - pick_split;
 
@@ -197,9 +214,9 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
         if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, farmer_quantity, "pick")
     } else {
         if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, allot_farmer, farmer_quantity, "pick")
-        if (pick_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, pick_quantity, "pick friend");
+        if (pick_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, pick_quantity, "pick friend")
     }
-    if (factory_quantity.amount > 0) TRANSFER(APLINK_BANK, _gstate.jamfactory, factory_quantity, "jam");
+    if (factory_quantity.amount > 0) TRANSFER(APLINK_BANK, _gstate.jamfactory, factory_quantity, "jam")
 }
 
 void farm::ontransfer(const name& from, const name& to, const asset& quantity, const string& memo) {

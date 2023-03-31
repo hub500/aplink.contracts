@@ -30,11 +30,8 @@ struct FARM_TBL_NAME("global") global_t {
     name jamfactory;
     uint64_t last_lease_id;
     uint64_t last_allot_id;
-    uint64_t friend_rate; // frient pick rate < 100
-    uint64_t friend_start_time; // frient pick start time > alloted_at + friend_start_time
-    uint64_t friend_end_time; // frient pick end time < alloted_at + friend_end_time
     
-    EOSLIB_SERIALIZE( global_t, (landlord)(jamfactory)(last_lease_id)(last_allot_id)(friend_rate)(friend_start_time)(friend_end_time) )
+    EOSLIB_SERIALIZE( global_t, (landlord)(jamfactory)(last_lease_id)(last_allot_id) )
 
     // template<typename DataStream>
     // friend DataStream& operator << ( DataStream& ds, const global_t& t ) {
@@ -50,6 +47,15 @@ struct FARM_TBL_NAME("global") global_t {
     // } 
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
+
+struct FARM_TBL_NAME("globalext") globalext_t {
+    uint64_t friend_rate; // frient pick rate < 100
+    uint64_t friend_start_time; // frient pick start time > alloted_at + friend_start_time
+    uint64_t friend_end_time; // frient pick end time < alloted_at + friend_end_time
+    
+    EOSLIB_SERIALIZE( globalext_t, (friend_rate)(friend_start_time)(friend_end_time) ) 
+};
+typedef eosio::singleton< "globalext"_n, globalext_t > globalext_singleton;
 
 
 namespace lease_status {
@@ -70,8 +76,6 @@ struct FARM_TBL lease_t {
     time_point_sec      closed_at;                  //customer stop crop at
     time_point_sec      created_at;                 //creation time (UTC time)
     time_point_sec      updated_at;                 //update time: last updated atuint8_t  
-    string desc_cn;
-    string desc_en;
     
     lease_t() {}
     lease_t(const uint64_t& pid): id(pid) {}
@@ -86,8 +90,23 @@ struct FARM_TBL lease_t {
     > idx_t;
 
     EOSLIB_SERIALIZE( lease_t,  (id)(tenant)(land_title)(land_uri)(banner_uri)(alloted_apples)(available_apples)
-                                (status)(opened_at)(closed_at)(created_at)(updated_at)(desc_cn)(desc_en) )
+                                (status)(opened_at)(closed_at)(created_at)(updated_at) )
 
+};
+
+struct FARM_TBL leaselang_t {
+    uint64_t            id;
+    string              desc_cn;
+    string              desc_en;
+    
+    leaselang_t() {}
+    leaselang_t(const uint64_t& pid): id(pid) {}
+
+    uint64_t primary_key() const { return id; }
+
+    typedef eosio::multi_index<"leaselang"_n, leaselang_t> idx_t;
+
+    EOSLIB_SERIALIZE( leaselang_t,  (id)(desc_cn)(desc_en) )
 };
 
 struct FARM_TBL allot_t {
