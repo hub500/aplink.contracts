@@ -80,28 +80,6 @@ void farm::setlease( const uint64_t& lease_id, const string& land_uri, const str
     _db.set( lease );
 }
 
-void farm::setleaselang( const uint64_t& lease_id, const string& desc_cn, const string& desc_en ) {
-    require_auth( _gstate.landlord );
-
-    CHECKC( desc_cn.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc cn size too large, respect " + to_string(max_desc_size))
-    CHECKC( desc_en.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc en size too large, respect " + to_string(max_desc_size))
-
-    auto lease                  = lease_t(lease_id);
-    CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "land not found: " + to_string(lease_id) )
-
-    auto leaselang              = leaselang_t(lease_id);
-    if ( !_db.get( leaselang )) {
-        leaselang               = leaselang_t(lease_id);
-        leaselang.desc_cn               = desc_cn;
-        leaselang.desc_en               = desc_en;
-        _db.set( leaselang, _gstate.landlord );
-    } else {
-        leaselang.desc_cn               = desc_cn;
-        leaselang.desc_en               = desc_en;
-        _db.set( leaselang );
-    }
-}
-
 void farm::settenant( const uint64_t& lease_id, const name& tenant ) {
     require_auth( _gstate.landlord );
 
@@ -290,4 +268,62 @@ void farm::setstatus(const uint64_t& lease_id, const name& status){
 
     lease.status = status;
     _db.set( lease );
+}
+
+void farm::leaselist( const name& tenant, 
+                    const string& land_title, 
+                    const string& land_uri, 
+                    const string& banner_uri,
+                    const string& desc_cn,
+                    const string& desc_en) {
+    require_auth( _gstate.landlord );
+
+    CHECKC( is_account(tenant), err::ACCOUNT_INVALID, "Tenant account invalid")
+    CHECKC( land_title.size() < max_text_size, err::CONTENT_LENGTH_INVALID, "title size too large, respect " + to_string(max_text_size))
+    CHECKC( land_uri.size() < max_text_size, err::CONTENT_LENGTH_INVALID, "url size too large, respect " + to_string(max_text_size))
+    CHECKC( banner_uri.size() < max_text_size, err::CONTENT_LENGTH_INVALID, "banner size too large, respect " + to_string(max_text_size))
+    CHECKC( desc_cn.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc cn size too large, respect " + to_string(max_desc_size))
+    CHECKC( desc_en.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc en size too large, respect " + to_string(max_desc_size))
+
+    auto now                    = current_time_point();
+    auto lease                  = leaselist_t(++_gstate.last_lease_id);
+    lease.tenant                = tenant;
+    lease.land_title            = land_title;
+    lease.land_uri              = land_uri;
+    lease.banner_uri            = banner_uri;
+    lease.desc_cn               = desc_cn;
+    lease.desc_en               = desc_en;
+    lease.opened_at             = now;
+    lease.created_at            = now;
+    lease.updated_at            = now;
+
+    _db.set(lease, _gstate.landlord);
+}
+
+void farm::setleaselist( const uint64_t& lease_id, const name& tenant, const string& land_uri, const string& banner_uri, const string& desc_cn, const string& desc_en ) {
+    require_auth( _gstate.landlord );
+
+    auto lease                  = leaselist_t(lease_id);
+    CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "land not found: " + to_string(lease_id) )
+
+    lease.tenant                = tenant;
+    lease.land_uri              = land_uri;
+    lease.banner_uri            = banner_uri;
+    lease.desc_cn               = desc_cn;
+    lease.desc_en               = desc_en;
+
+    _db.set( lease );
+}
+
+void farm::clearleases() {
+    require_auth( _gstate.landlord );
+
+    auto leases = lease_t::idx_t(_self, _self.value);
+    auto itr = leases.begin();
+    CHECKC( itr != leases.end(), err::RECORD_NOT_FOUND, "leases is empty");
+
+    while(itr != leases.end()){
+        leases.erase(itr);
+        itr++;
+    }
 }

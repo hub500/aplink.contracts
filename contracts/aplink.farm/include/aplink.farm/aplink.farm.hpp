@@ -86,8 +86,6 @@ public:
 
     ACTION setlease( const uint64_t& lease_id, const string& land_uri, const string& banner_uri );
 
-    ACTION setleaselang( const uint64_t& lease_id, const string& desc_cn, const string& desc_en );
-
     ACTION settenant( const uint64_t& lease_id, const name& tenant );
     /**
      * @brief reclaim a lease, only for inactive ones
@@ -172,6 +170,29 @@ public:
         
         apples = lease.available_apples;
     }
+
+    /// @brief add leaselist table data
+    /// @param tenant - tenant account name
+    /// @param land_title - title name
+    /// @param land_uri - land image url
+    /// @param banner_uri - banner image url
+    /// @param desc_cn - desc chinese
+    /// @param desc_en - desc english
+    ACTION leaselist( const name& tenant, const string& land_title, const string& land_uri, const string& banner_uri, 
+        const string& desc_cn, const string& desc_en );
+
+    /// @brief set leaselist table data
+    /// @param lease_id - leaselist primary key
+    /// @param tenant - tenant account name
+    /// @param land_uri - land image url
+    /// @param banner_uri - banner image url
+    /// @param desc_cn - desc chinese
+    /// @param desc_en - desc english
+    ACTION setleaselist( const uint64_t& lease_id, const name& tenant, const string& land_uri, const string& banner_uri, 
+        const string& desc_cn, const string& desc_en );
+
+    /// @brief clear leases table data
+    ACTION clearleases();
 };
 
 }
