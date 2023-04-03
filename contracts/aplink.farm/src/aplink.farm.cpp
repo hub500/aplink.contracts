@@ -245,8 +245,8 @@ void farm::ontransfer(const name& from, const name& to, const asset& quantity, c
         } else {
             // new lease
             auto lease                  = leaselist_t(lease_id);
-            CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "lease not found: " + to_string(lease_id) );
-            CHECKC( lease.status == lease_status::active, err::NOT_DISABLED, "lease not enabled");
+            CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "leaselist not found: " + to_string(lease_id) );
+            CHECKC( lease.status == lease_status::active, err::NOT_DISABLED, "leaselist not enabled");
 
             lease.available_apples      += quantity;
             _db.set( lease );
@@ -301,14 +301,14 @@ void farm::reclaimallot(const name& issuer, const uint64_t& allot_id, const stri
     } else {
         // new lease
         auto lease = leaselist_t(allot.lease_id);
-        CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "lease not found: " + to_string(allot.lease_id) )
+        CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "leaselist not found: " + to_string(allot.lease_id) )
 
         if (_gstate.landlord == issuer) {
             TRANSFER( APLINK_BANK, _gstate.jamfactory, allot.apples, memo )
             _db.del( allot );
 
         } else if (lease.tenant == issuer) {
-            CHECKC( lease.alloted_apples >= allot.apples, err::OVERSIZED, "lease has insufficient total alloted apples" )
+            CHECKC( lease.alloted_apples >= allot.apples, err::OVERSIZED, "leaselist has insufficient total alloted apples" )
             lease.available_apples  += allot.apples;
             lease.alloted_apples    -= allot.apples;
 
@@ -338,7 +338,7 @@ void farm::setstatus(const uint64_t& lease_id, const name& status){
     } else {
         // new lease
         auto lease = leaselist_t(lease_id);
-        CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "lease not found: " + to_string(lease_id) );
+        CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "leaselist not found: " + to_string(lease_id) );
         CHECKC( lease.status != status, err::ACTION_REDUNDANT, "land status unchanged" );
         CHECKC( status == lease_status::none || status == lease_status::active || status == lease_status::inactive, err::PARAM_ERROR, "status undefined: " + status.to_string() )
 
@@ -405,8 +405,8 @@ void farm::reclaimlist(const name& issuer, const uint64_t& lease_id, const strin
     CHECKC( _gstate.landlord == issuer, err::NO_AUTH, "issuer not landlord" )
 
     auto lease = leaselist_t(lease_id);
-    CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "lease not found: " + to_string(lease_id) )
-    CHECKC( lease.status == lease_status::active, err::NOT_DISABLED, "lease not active: " + to_string(lease_id) )
+    CHECKC( _db.get( lease ), err::RECORD_NOT_FOUND, "leaselist not found: " + to_string(lease_id) )
+    CHECKC( lease.status == lease_status::active, err::NOT_DISABLED, "leaselist not active: " + to_string(lease_id) )
     CHECKC( lease.available_apples.amount > 0, err::NOT_POSITIVE, "reclaim non-positive quantity not allowed")
     
     TRANSFER( APLINK_BANK, _gstate.jamfactory, lease.available_apples, memo )
