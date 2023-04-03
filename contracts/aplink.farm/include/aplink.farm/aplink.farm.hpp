@@ -188,8 +188,14 @@ public:
     /// @param banner_uri - banner image url
     /// @param desc_cn - desc chinese
     /// @param desc_en - desc english
-    ACTION setleaselist( const uint64_t& lease_id, const name& tenant, const string& land_uri, const string& banner_uri, 
+    ACTION setleaselist( const uint64_t& lease_id, const name& tenant, const string& land_title, const string& land_uri, const string& banner_uri, 
         const string& desc_cn, const string& desc_en );
+    
+    /// @brief reclaim leaselist table data
+    /// @param issuer - reclaim account
+    /// @param lease_id - lease pk
+    /// @param memo - memo content
+    ACTION reclaimlist( const name& issuer, const uint64_t& lease_id, const string& memo );
 
     /// @brief clear leases table data
     ACTION clearleases();
