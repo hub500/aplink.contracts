@@ -216,10 +216,10 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
     print("pick_quantity=>", pick_quantity, "\t");
     print("factory_quantity=>", factory_quantity);
     if (is_frient == 0) {
-        if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, farmer_quantity, "pick")
+        if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, farmer_quantity, "pick:"+farmer.to_string())
     } else {
-        if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, allot_farmer, farmer_quantity, "pick")
-        if (pick_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, pick_quantity, "pick by friend:"+allot_farmer.to_string())
+        if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, allot_farmer, farmer_quantity, "pick:"+farmer.to_string())
+        if (pick_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, pick_quantity, "friend:"+allot_farmer.to_string())
     }
     if (factory_quantity.amount > 0) TRANSFER(APLINK_BANK, _gstate.jamfactory, factory_quantity, "jam")
 }
