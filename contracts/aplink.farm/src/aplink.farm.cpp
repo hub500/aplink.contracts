@@ -92,6 +92,8 @@ void farm::settenant( const uint64_t& lease_id, const name& tenant ) {
 }
 
 void farm::allot(const uint64_t& lease_id, const name& farmer, const asset& quantity, const string& memo) {
+    /// upgrade
+    CHECKC( false, err::NONE, "contract upgrade" );
 
     CHECKC( is_account(farmer), err::ACCOUNT_INVALID, "Invalid account of farmer" );
     CHECKC( quantity.amount > 0, err::PARAM_ERROR, "non-positive quantity not allowed" );

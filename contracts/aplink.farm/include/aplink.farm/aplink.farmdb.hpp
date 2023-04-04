@@ -91,8 +91,43 @@ struct FARM_TBL lease_t {
         indexed_by<"updatedid"_n,  const_mem_fun<lease_t, uint64_t, &lease_t::by_updatedid> >
     > idx_t;
 
-    EOSLIB_SERIALIZE( lease_t,  (id)(tenant)(land_title)(land_uri)(banner_uri)(alloted_apples)(available_apples)
-                                (status)(opened_at)(closed_at)(created_at)(updated_at) )
+    /// upgrade
+    template<typename DataStream>
+    friend DataStream& operator << ( DataStream& ds, const lease_t& t ) {
+        return ds   << t.id
+                    << t.tenant
+                    << t.land_title
+                    << t.land_uri
+                    << t.banner_uri
+                    << t.alloted_apples
+                    << t.available_apples
+                    << t.status
+                    << t.opened_at
+                    << t.closed_at
+                    << t.created_at
+                    << t.updated_at
+                    << t.desc_cn
+                    << t.desc_en;
+    }
+ 
+    template<typename DataStream>
+    friend DataStream& operator >> ( DataStream& ds, lease_t& t ) {  
+        return ds   >> t.id
+                    >> t.tenant
+                    >> t.land_title
+                    >> t.land_uri
+                    >> t.banner_uri
+                    >> t.alloted_apples
+                    >> t.available_apples
+                    >> t.status
+                    >> t.opened_at
+                    >> t.closed_at
+                    >> t.created_at
+                    >> t.updated_at;
+    }
+
+    // EOSLIB_SERIALIZE( lease_t,  (id)(tenant)(land_title)(land_uri)(banner_uri)(alloted_apples)(available_apples)
+    //                             (status)(opened_at)(closed_at)(created_at)(updated_at)(desc_cn)(desc_en) )
 
 };
 
