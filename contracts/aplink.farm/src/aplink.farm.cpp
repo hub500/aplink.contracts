@@ -92,6 +92,8 @@ void farm::settenant( const uint64_t& lease_id, const name& tenant ) {
 }
 
 void farm::allot(const uint64_t& lease_id, const name& farmer, const asset& quantity, const string& memo) {
+    /// 升级前删除注释 升级后添加注释
+    // CHECKC( false, err::NONE, "contract upgrade" );
 
     CHECKC( is_account(farmer), err::ACCOUNT_INVALID, "Invalid account of farmer" );
     CHECKC( quantity.amount > 0, err::PARAM_ERROR, "non-positive quantity not allowed" );
@@ -427,4 +429,19 @@ void farm::clearleases() {
     while(itr != leases.end()) {
         itr = leases.erase(itr);
     }
+}
+
+void farm::upgrade( const uint64_t& lease_id, const string& desc_cn, const string& desc_en ) {
+    require_auth( _gstate.landlord );
+
+    CHECKC( desc_cn.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc cn size too large, respect " + to_string(max_desc_size))
+    CHECKC( desc_en.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc en size too large, respect " + to_string(max_desc_size))
+
+    auto leases = lease_t::idx_t(_self, _self.value);
+    auto lease = leases.find(lease_id);
+    eosio::check( lease != leases.end(), "lease not found: " + to_string(lease_id) );
+    leases.modify( lease, _self, [&]( auto& row ) {
+        row.desc_cn = desc_cn;
+        row.desc_en = desc_en;
+    });
 }

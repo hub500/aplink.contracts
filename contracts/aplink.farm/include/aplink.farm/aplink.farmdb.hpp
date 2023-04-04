@@ -75,7 +75,9 @@ struct FARM_TBL lease_t {
     time_point_sec      opened_at;                  //customer can crop at
     time_point_sec      closed_at;                  //customer stop crop at
     time_point_sec      created_at;                 //creation time (UTC time)
-    time_point_sec      updated_at;                 //update time: last updated atuint8_t  
+    time_point_sec      updated_at;                 //update time: last updated atuint8_t
+    string              desc_cn;
+    string              desc_en;
     
     lease_t() {}
     lease_t(const uint64_t& pid): id(pid) {}
@@ -89,8 +91,45 @@ struct FARM_TBL lease_t {
         indexed_by<"updatedid"_n,  const_mem_fun<lease_t, uint64_t, &lease_t::by_updatedid> >
     > idx_t;
 
+    /// 升级前删除注释
+    // template<typename DataStream>
+    // friend DataStream& operator << ( DataStream& ds, const lease_t& t ) {
+    //     return ds   << t.id
+    //                 << t.tenant
+    //                 << t.land_title
+    //                 << t.land_uri
+    //                 << t.banner_uri
+    //                 << t.alloted_apples
+    //                 << t.available_apples
+    //                 << t.status
+    //                 << t.opened_at
+    //                 << t.closed_at
+    //                 << t.created_at
+    //                 << t.updated_at
+    //                 << t.desc_cn
+    //                 << t.desc_en;
+    // }
+ 
+    // template<typename DataStream>
+    // friend DataStream& operator >> ( DataStream& ds, lease_t& t ) {  
+    //     return ds   >> t.id
+    //                 >> t.tenant
+    //                 >> t.land_title
+    //                 >> t.land_uri
+    //                 >> t.banner_uri
+    //                 >> t.alloted_apples
+    //                 >> t.available_apples
+    //                 >> t.status
+    //                 >> t.opened_at
+    //                 >> t.closed_at
+    //                 >> t.created_at
+    //                 >> t.updated_at;
+    // }
+    /// 升级前删除注释
+
+    /// 升级前添加注释 升级后删除注释
     EOSLIB_SERIALIZE( lease_t,  (id)(tenant)(land_title)(land_uri)(banner_uri)(alloted_apples)(available_apples)
-                                (status)(opened_at)(closed_at)(created_at)(updated_at) )
+                                (status)(opened_at)(closed_at)(created_at)(updated_at)(desc_cn)(desc_en) )
 
 };
 

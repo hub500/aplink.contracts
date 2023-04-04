@@ -199,6 +199,12 @@ public:
 
     /// @brief clear leases table data
     ACTION clearleases();
+
+    /// @brief contract upgrade step one
+    /// @param lease_id - leaselist primary key
+    /// @param desc_cn - desc chinese
+    /// @param desc_en - desc english
+    ACTION upgrade( const uint64_t& lease_id, const string& desc_cn, const string& desc_en );
 };
 
 }
