@@ -92,7 +92,7 @@ struct FARM_TBL lease_t {
     > idx_t;
 
     EOSLIB_SERIALIZE( lease_t,  (id)(tenant)(land_title)(land_uri)(banner_uri)(alloted_apples)(available_apples)
-                                (status)(opened_at)(closed_at)(created_at)(updated_at) )
+                                (status)(opened_at)(closed_at)(created_at)(updated_at)(desc_cn)(desc_en) )
 
 };
 
