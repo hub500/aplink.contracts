@@ -2,8 +2,10 @@
 #include <string>
 #include "utils.hpp"
 #include "aplink.token/aplink.token.hpp"
+#include <eosio/permission.hpp>
 
 static constexpr uint32_t max_text_size     = 64;
+static constexpr uint32_t max_desc_size     = 500;
 using namespace aplink;
 using namespace wasm;
 
@@ -26,6 +28,18 @@ void farm::init(const name& lord, const name& jamfactory, const uint64_t& last_l
     _gstate.jamfactory      = jamfactory;
     _gstate.last_lease_id   = last_lease_id;
     _gstate.last_allot_id   = last_allot_id;
+}
+
+void farm::setinit(const uint64_t& rate, const uint64_t& start_time, const uint64_t& end_time) {
+    require_auth( get_self() );
+
+    CHECKC( rate > 0 && rate < 100, err::PARAM_ERROR, "friend rate too small" );
+    CHECKC( start_time > 0, err::PARAM_ERROR, "friend pick start time too small" );
+    CHECKC( end_time > start_time, err::PARAM_ERROR, "friend pick end time too small" );
+
+    _gextstate.friend_rate        = rate;
+    _gextstate.friend_start_time  = start_time;
+    _gextstate.friend_end_time    = end_time;
 }
 
 void farm::lease(   const name& tenant, 
@@ -116,33 +130,71 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
 
     auto farmer_quantity        = asset(0, APLINK_SYMBOL);
     auto factory_quantity       = asset(0, APLINK_SYMBOL);
+    auto pick_quantity = asset(0, APLINK_SYMBOL); // friend pick
+    name allot_farmer;
     auto now                    = time_point_sec(current_time_point());
 
     CHECKC( allot_ids.size() <= 20, err::CONTENT_LENGTH_INVALID, "allot_ids too long, expect length 20" );
     
-    string memo = "";
+    uint64_t is_frient = 0;
     for (auto& allot_id : allot_ids) {
         auto allot = allot_t(allot_id);
         CHECKC( _db.get( allot ), err::RECORD_NOT_FOUND, "allot not found: " + to_string(allot_id) )
-        CHECKC( farmer == allot.farmer || farmer == _gstate.jamfactory, err::ACCOUNT_INVALID, "farmer account not authorized" )
         
-        if (now > allot.expired_at) { //already expired
-            factory_quantity        += allot.apples;
-            _db.del( allot );
+        if (farmer == allot.farmer || farmer == _gstate.jamfactory) {
+            CHECKC(farmer == allot.farmer || farmer == _gstate.jamfactory, err::ACCOUNT_INVALID,
+                "farmer account not authorized");
 
+            if (now > allot.expired_at) { // already expired
+                factory_quantity += allot.apples;
+                _db.del(allot);
+            } else {
+                CHECKC(farmer != _gstate.jamfactory, err::NO_AUTH, "jamfactory pick not allowed")
+
+                farmer_quantity += allot.apples;
+                _db.del(allot);
+            }
         } else {
-            CHECKC( farmer !=  _gstate.jamfactory, err::NO_AUTH, "jamfactory pick not allowed" )
+            // frient pick
+            if (now > allot.alloted_at+_gextstate.friend_start_time && now < allot.alloted_at+_gextstate.friend_end_time) {
+                is_frient += 1;
+                // parent allot_farmer
+                name parent_allot_farmer = get_account_creator(allot.farmer);
+                allot_farmer = allot.farmer;
+                // child user parent farmer
+                name parent_farmer = get_account_creator(farmer);
 
-            farmer_quantity         += allot.apples;
-            _db.del( allot );
+                print("parent_farmer=>", parent_farmer, "\t"); // todo
+                print("parent allot_farmer=>", parent_allot_farmer, "\t");
+                CHECKC(farmer == parent_allot_farmer || parent_farmer == allot.farmer, err::ACCOUNT_INVALID,
+                "farmer account not authorized");
+                
+                // apples split
+                auto pick_split = allot.apples * _gextstate.friend_rate / 100;
+                pick_quantity += pick_split;
+                farmer_quantity += allot.apples - pick_split;
+
+                _db.del(allot);
+            } else {
+                name parent_allot_farmer = get_account_creator(allot.farmer);
+                name parent_farmer = get_account_creator(farmer);
+                print("parent_farmer=>", parent_farmer, "\t"); // todo
+                print("parent allot_farmer=>", parent_allot_farmer, "\t");
+                CHECKC(false, err::ACCOUNT_INVALID, "pick account not allowed");
+            }
         }
-	}
+    }
 
-    if (farmer_quantity.amount > 0) 
-        TRANSFER( APLINK_BANK, farmer, farmer_quantity, "pick" )
-
-    if (factory_quantity.amount > 0) 
-        TRANSFER( APLINK_BANK, _gstate.jamfactory, factory_quantity, "jam");
+    print("farmer_quantity=>", farmer_quantity, "\t"); // todo
+    print("pick_quantity=>", pick_quantity, "\t");
+    print("factory_quantity=>", factory_quantity, "\t");
+    if (is_frient == 0) {
+        if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, farmer_quantity, "pick:"+farmer.to_string())
+    } else {
+        if (farmer_quantity.amount > 0) TRANSFER(APLINK_BANK, allot_farmer, farmer_quantity, "pick:"+farmer.to_string())
+        if (pick_quantity.amount > 0) TRANSFER(APLINK_BANK, farmer, pick_quantity, "friend:"+allot_farmer.to_string())
+    }
+    if (factory_quantity.amount > 0) TRANSFER(APLINK_BANK, _gstate.jamfactory, factory_quantity, "jam")
 }
 
 void farm::ontransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
@@ -216,4 +268,19 @@ void farm::setstatus(const uint64_t& lease_id, const name& status){
 
     lease.status = status;
     _db.set( lease );
+}
+
+void farm::upgrade( const uint64_t& lease_id, const string& desc_cn, const string& desc_en ) {
+    require_auth( _gstate.landlord );
+
+    CHECKC( desc_cn.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc cn size too large, respect " + to_string(max_desc_size))
+    CHECKC( desc_en.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc en size too large, respect " + to_string(max_desc_size))
+
+    auto leases = lease_t::idx_t(_self, _self.value);
+    auto lease = leases.find(lease_id);
+    eosio::check( lease != leases.end(), "lease not found: " + to_string(lease_id) );
+    leases.modify( lease, _self, [&]( auto& row ) {
+        row.desc_cn = desc_cn;
+        row.desc_en = desc_en;
+    });
 }

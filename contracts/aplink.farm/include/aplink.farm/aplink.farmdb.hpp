@@ -48,6 +48,15 @@ struct FARM_TBL_NAME("global") global_t {
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
+struct FARM_TBL_NAME("globalext") globalext_t {
+    uint64_t friend_rate; // frient pick rate < 100
+    uint64_t friend_start_time; // frient pick start time > alloted_at + friend_start_time
+    uint64_t friend_end_time; // frient pick end time < alloted_at + friend_end_time
+    
+    EOSLIB_SERIALIZE( globalext_t, (friend_rate)(friend_start_time)(friend_end_time) ) 
+};
+typedef eosio::singleton< "globalext"_n, globalext_t > globalext_singleton;
+
 
 namespace lease_status {
     static constexpr eosio::name none           = "none"_n;
@@ -66,7 +75,9 @@ struct FARM_TBL lease_t {
     time_point_sec      opened_at;                  //customer can crop at
     time_point_sec      closed_at;                  //customer stop crop at
     time_point_sec      created_at;                 //creation time (UTC time)
-    time_point_sec      updated_at;                 //update time: last updated atuint8_t  
+    time_point_sec      updated_at;                 //update time: last updated atuint8_t
+    string              desc_cn;
+    string              desc_en;
     
     lease_t() {}
     lease_t(const uint64_t& pid): id(pid) {}
