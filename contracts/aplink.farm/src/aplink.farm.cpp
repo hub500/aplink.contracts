@@ -272,7 +272,7 @@ void farm::setstatus(const uint64_t& lease_id, const name& status){
     _db.set( lease );
 }
 
-void farm::upgrade( const uint64_t& lease_id, const string& desc_cn, const string& desc_en ) {
+void farm::leaselang( const uint64_t& lease_id, const string& desc_cn, const string& desc_en ) {
     require_auth( _gstate.landlord );
 
     CHECKC( desc_cn.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc cn size too large, respect " + to_string(max_desc_size))
