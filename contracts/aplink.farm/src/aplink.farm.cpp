@@ -140,20 +140,20 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
     for (auto& allot_id : allot_ids) {
         auto allot = allot_t(allot_id);
         CHECKC( _db.get( allot ), err::RECORD_NOT_FOUND, "allot not found: " + to_string(allot_id) )
+
+        if (now > allot.expired_at) { // already expired
+            factory_quantity += allot.apples;
+            _db.del(allot);
+            continue;
+        }
         
         if (farmer == allot.farmer || farmer == _gstate.jamfactory) {
             CHECKC(farmer == allot.farmer || farmer == _gstate.jamfactory, err::ACCOUNT_INVALID,
                 "farmer account not authorized");
+            CHECKC(farmer != _gstate.jamfactory, err::NO_AUTH, "jamfactory pick not allowed")
 
-            if (now > allot.expired_at) { // already expired
-                factory_quantity += allot.apples;
-                _db.del(allot);
-            } else {
-                CHECKC(farmer != _gstate.jamfactory, err::NO_AUTH, "jamfactory pick not allowed")
-
-                farmer_quantity += allot.apples;
-                _db.del(allot);
-            }
+            farmer_quantity += allot.apples;
+            _db.del(allot);
         } else {
             // frient pick
             if (now > allot.alloted_at+_gextstate.friend_start_time && now < allot.alloted_at+_gextstate.friend_end_time) {
