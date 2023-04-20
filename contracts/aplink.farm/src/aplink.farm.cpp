@@ -166,8 +166,8 @@ void farm::pick(const name& farmer, const vector<uint64_t>& allot_ids) {
 
                 print("parent_farmer=>", parent_farmer, "\t"); // todo
                 print("parent allot_farmer=>", parent_allot_farmer, "\t");
-                CHECKC(farmer == parent_allot_farmer || parent_farmer == allot.farmer, err::ACCOUNT_INVALID,
-                "farmer account not authorized");
+                CHECKC(farmer == parent_allot_farmer || parent_farmer == allot.farmer || 
+                    parent_allot_farmer == parent_farmer, err::ACCOUNT_INVALID, "farmer account not authorized");
                 
                 // apples split
                 auto pick_split = allot.apples * _gextstate.friend_rate / 100;
