@@ -5,7 +5,7 @@
 #include <eosio/permission.hpp>
 
 static constexpr uint32_t max_text_size     = 64;
-static constexpr uint32_t max_desc_size     = 500;
+static constexpr uint32_t max_title_size     = 2000;
 using namespace aplink;
 using namespace wasm;
 
@@ -49,7 +49,7 @@ void farm::lease(   const name& tenant,
     require_auth( _gstate.landlord );
 
     CHECKC( is_account(tenant), err::ACCOUNT_INVALID, "Tenant account invalid")
-    CHECKC( land_title.size() < max_text_size, err::CONTENT_LENGTH_INVALID, "title size too large, respect " + to_string(max_text_size))
+    CHECKC( land_title.size() < max_title_size, err::CONTENT_LENGTH_INVALID, "title size too large, respect " + to_string(max_text_size))
     CHECKC( land_uri.size() < max_text_size, err::CONTENT_LENGTH_INVALID, "url size too large, respect " + to_string(max_text_size))
     CHECKC( banner_uri.size() < max_text_size, err::CONTENT_LENGTH_INVALID, "banner size too large, respect " + to_string(max_text_size))
     // CHECKC( opened_at > current_time_point(), err::TIME_INVALID, "start time cannot earlier than now")
@@ -263,17 +263,3 @@ void farm::setstatus(const uint64_t& lease_id, const name& status){
     _db.set( lease );
 }
 
-void farm::leaselang( const uint64_t& lease_id, const string& desc_cn, const string& desc_en ) {
-    require_auth( _gstate.landlord );
-
-    CHECKC( desc_cn.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc cn size too large, respect " + to_string(max_desc_size))
-    CHECKC( desc_en.size() < max_desc_size, err::CONTENT_LENGTH_INVALID, "desc en size too large, respect " + to_string(max_desc_size))
-
-    auto leases = lease_t::idx_t(_self, _self.value);
-    auto lease = leases.find(lease_id);
-    eosio::check( lease != leases.end(), "lease not found: " + to_string(lease_id) );
-    leases.modify( lease, _self, [&]( auto& row ) {
-        row.desc_cn = desc_cn;
-        row.desc_en = desc_en;
-    });
-}

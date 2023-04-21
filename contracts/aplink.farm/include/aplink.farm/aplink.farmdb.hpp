@@ -66,7 +66,7 @@ namespace lease_status {
 struct FARM_TBL lease_t {
     uint64_t            id;
     name                tenant;                     //tenant (contract account)
-    string              land_title;                 //land title: <=64 chars
+    string              land_title;                 //land title: <=2000 chars    title_en|title_cn:desc_en|desc_cn
     string              land_uri;                   //land uri: <=64 chars
     string              banner_uri;                 //banner uri: <=64 chars
     asset               alloted_apples =  asset(0, APLINK_SYMBOL);
@@ -76,8 +76,6 @@ struct FARM_TBL lease_t {
     time_point_sec      closed_at;                  //customer stop crop at
     time_point_sec      created_at;                 //creation time (UTC time)
     time_point_sec      updated_at;                 //update time: last updated atuint8_t
-    string              desc_cn;
-    string              desc_en;
     
     lease_t() {}
     lease_t(const uint64_t& pid): id(pid) {}
@@ -92,7 +90,7 @@ struct FARM_TBL lease_t {
     > idx_t;
 
     EOSLIB_SERIALIZE( lease_t,  (id)(tenant)(land_title)(land_uri)(banner_uri)(alloted_apples)(available_apples)
-                                (status)(opened_at)(closed_at)(created_at)(updated_at)(desc_cn)(desc_en) )
+                                (status)(opened_at)(closed_at)(created_at)(updated_at) )
 
 };
 
