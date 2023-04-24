@@ -173,7 +173,7 @@ public:
 
     /**
      * @brief update land title  
-     * land title: <=2000 chars    title_en|title_cn:desc_en|desc_cn
+     * land title: <=3000 chars    en:xx|cn:xx|en_desc:xx|cn_desc:xx|en_rule:xx|cn_rule:xx
      * 
      * @param lease_id - lease_id private key
      * @param title - lease title

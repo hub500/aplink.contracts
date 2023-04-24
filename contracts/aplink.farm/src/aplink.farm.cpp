@@ -5,7 +5,7 @@
 #include <eosio/permission.hpp>
 
 static constexpr uint32_t max_text_size     = 64;
-static constexpr uint32_t max_title_size     = 2000;
+static constexpr uint32_t max_title_size     = 3000;
 using namespace aplink;
 using namespace wasm;
 
