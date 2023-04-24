@@ -170,6 +170,15 @@ public:
         
         apples = lease.available_apples;
     }
+
+    /**
+     * @brief update land title  
+     * land title: <=2000 chars    title_en|title_cn:desc_en|desc_cn
+     * 
+     * @param lease_id - lease_id private key
+     * @param title - lease title
+     */
+    ACTION settitle( const uint64_t& lease_id, const string& title );
 };
 
 }

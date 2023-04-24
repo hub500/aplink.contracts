@@ -263,3 +263,15 @@ void farm::setstatus(const uint64_t& lease_id, const name& status){
     _db.set( lease );
 }
 
+void farm::settitle( const uint64_t& lease_id, const string& title ) {
+    require_auth( _gstate.landlord );
+
+    CHECKC( title.size() < max_title_size, err::CONTENT_LENGTH_INVALID, "title size too large, respect " + to_string(max_text_size))
+
+    auto leases = lease_t::idx_t(_self, _self.value);
+    auto lease = leases.find(lease_id);
+    eosio::check( lease != leases.end(), "lease not found: " + to_string(lease_id) );
+    leases.modify( lease, _self, [&]( auto& row ) {
+        row.land_title = title;
+    });
+}
